@@ -6,6 +6,7 @@ class AC_MDC_Courses {
 
     //add_shortcode('Dribbble', array($this, 'shortcode'));
     add_action('init', array($this, 'cpt_courses'));
+    add_filter( 'the_title', array($this, 'MDC_course_title'), 10, 2 );
     //add_action('init', array($this, 'mpk9_tax'));
 
   }
@@ -33,5 +34,14 @@ class AC_MDC_Courses {
     //course
 
   }
+
+  function MDC_course_title( $title, $id = null ) {
+    if(get_post_type() == 'course') {
+      $course_level = get_field('course_level', $id);
+      return ($course_level != '')? $title . ' (Level ' .$course_level. ')' : $title;
+    }
+    return $title;
+  }
+
 
 }
