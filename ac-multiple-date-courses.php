@@ -20,6 +20,8 @@ define( 'ACMDC_PLUGIN_NAME', trim( dirname( ACMDC_PLUGIN_BASENAME ), '/' ) );
 
 define( 'ACMDC_PLUGIN_DIR', untrailingslashit( dirname( ACMDC_PLUGIN ) ) );
 
+require_once ACMDC_PLUGIN_DIR . '/lib/functions.php';
+
 require_once ACMDC_PLUGIN_DIR . '/lib/Ac-cpt-courses.php';
 require_once ACMDC_PLUGIN_DIR . '/lib/Ac-cpt-course-locations.php';
 require_once ACMDC_PLUGIN_DIR . '/lib/Ac-cpt-course-dates.php';
