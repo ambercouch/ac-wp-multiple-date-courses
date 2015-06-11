@@ -6,7 +6,8 @@ class AC_MDC_Course_dates {
     add_action('init', array($this, 'cpt_course_dates'));
     add_action( 'wp_insert_post', array($this, 'set_course_dates_title') );
 
-    add_shortcode('ac-mdc', array($this, 'sc_print_course'));
+    add_shortcode('ac_mdc', array($this, 'sc_print_course'));
+    add_shortcode('ac_mdc_dates', array($this, 'sc_print_course_dates'));
 
     // filter for a specific field based on it's name
     add_filter('acf/fields/post_object/result/name=course_name', array($this, 'my_post_object_result'), 10, 4);
@@ -80,44 +81,72 @@ class AC_MDC_Course_dates {
     add_action( 'wp_insert_post', array($this, 'set_course_dates_title') );
 
   }
+  function sc_print_course_dates( $atts ) {
+    global $post;
+    $q = new WP_Query( array(
+      'post_type'        => 'course_dates',
+      'meta_key'	=> 'course_name',
+      'meta_value'	=> $post->ID
+    ) );
+    $output = '';
+    $output .= "<style>";
+    $output .= ".current-course-dates__meta{display: block;}";
+    $output .= ".current-course-dates__item{display: block;margin-bottom:0.2em;padding-bottom:0.2em; border-bottom:solid 1px #ddd;}";
+    $output .= ".current-course-dates__date{font-weight: bold;}";
+    $output .= "</style>";
+
+    if ( $q->have_posts() ):
+      $output .= '<div class="current-course-dates">';
+      while ( $q->have_posts() ) : $q->the_post();
+
+      $course_dates = get_field('course_dates');
+      foreach ( $course_dates as $course_date) {
+        $output .= "<span class=\"current-course-dates__item\"> ";
+        $output .= "<span class=\"current-course-dates__date\"> ";
+        $output .= ac_format_date($course_date['course_dates_start'], 'd/m/y');
+        $output .= "</span> ";
+        $output .= " to ";
+        $output .= "<span class=\"current-course-dates__date\"> ";
+        $output .= ac_format_date($course_date['course_dates_end'], 'd/m/y');
+        $output .= "</span> ";
+        $output .= "<small class=\"current-course-dates__meta\"> ";
+        if($course_date['course_dates_module_name'] != ''){
+          $output .= '(';
+          $output .= $course_date['course_dates_module_name'];
+          $output .= ') ';
+        }
+
+        $output .= $course_date['course_dates_location']->post_title;
+        $output .= "</small>";
+        $output .= "</span> ";
+      }
+
+
+
+    endwhile;
+    $output .= '</div>';
+    endif; wp_reset_postdata();
+
+    return $output;
+  }
 
   function sc_print_course( $atts ) {
 
     extract( shortcode_atts( array(
       'id'          => '',
-//      'page_ids'    => '',
       'class'       => '',
       'style'       => '',
-//      'type'        => '',
-//      'category'    => '',
-//      'offset'      => '',
-//      'orientation' => '',
-//      'no_image'    => '',
-//      'fade'        => ''
     ), $atts, 'recent_posts' ) );
 
 
-
-//    $page_ids      = ( $page_ids    != ''          ) ? explode(',', $page_ids)  : array(1);
     $id            = ( $id          != ''          ) ? 'id="' . esc_attr( $id ) . '"' : '';
     $class         = ( $class       != ''          ) ? 'ac-mdc-course-list ' . esc_attr( $class ) : 'ac-mdc-course-list';
     $style         = ( $style       != ''          ) ? 'style="' . $style . '"' : '';
-//    $type          = ( $type        != ''          ) ? $type : 'any';
-//    $orientation   = ( $orientation != ''          ) ? ' ' . $orientation : ' horizontal';
-//    $no_image      = ( $no_image    == 'true'      ) ? $no_image : '';
-//    $fade          = ( $fade        == 'true'      ) ? $fade : 'false';
-//    $count         = count($page_ids);
 
-//    if($ac_x_theme == TRUE && function_exists('x_generate_data_attributes')) {
-//      $js_params = array(
-//        'fade' => ( $fade == 'true' )
-//      );
-//
-//      $data = x_generate_data_attributes( 'recent_posts', $js_params );
-//    }
+
 
     $output = "";
-    $output .= "<style> .ac-mdc-course-list__td--info{text-align: center} </style>";
+    $output .= "<style> .ac-mdc-course-list__td--info{text-align: center} .ac-mdc-course-list__td--dates select{width:100%} </style>";
     $output .= "<div {$id} class=\"{$class}\" {$style} >";
     $output .= "<table>";
     $output .= "<thead>";
@@ -148,15 +177,16 @@ class AC_MDC_Course_dates {
 
       $course_title_short = (get_field('course_short_name', $course->ID) != '') ? get_field('course_short_name', $course->ID) : $course_title_acronym;
 
-      $course_level = (get_field('course_level', $course->ID) == '')? '' :  '<small>(Level ' . get_field('course_level', $course->ID) . ')</small>';
+      $course_level = (get_field('course_level', $course->ID) == '')? '' :  '<small>(L' . get_field('course_level', $course->ID) . ')</small>';
 
       $course_dates = get_field('course_dates');
 
-
+      $course_locations= array();
       foreach($course_dates as $key => $location){
 
         $location_id = $location['course_dates_location']->ID;
         $location_name = get_the_title($location_id);
+
         $course_locations[$location_name][] = array(
           'course_dates_start' => $location['course_dates_start'],
           'course_dates_end' => $location['course_dates_end'],
@@ -171,7 +201,7 @@ class AC_MDC_Course_dates {
 
       $dates_options = '';
       foreach($location_dates as $course_date){
-        $dates_options .= '<option>';
+        $dates_options .= '<option data-js-price="'.$course_date['course_dates_price'].'">';
         $dates_options .= ac_format_date($course_date['course_dates_start'], 'd M Y') . ' to ' . ac_format_date($course_date['course_dates_end'], 'd M Y') ;
         $dates_options .= '</option>';
       }
@@ -195,7 +225,7 @@ class AC_MDC_Course_dates {
 
       $output .= '<td class="ac-mdc-course-list__td--price" >';
 
-      $output .= 'price';
+      $output .= '£<span class="price__num"></span>';
 
       $output .= '</td>';
 
@@ -205,26 +235,6 @@ class AC_MDC_Course_dates {
 
       $output .= '</tr>';
     }
-
-//      if ( $no_image == 'true' ) {
-//        $image_output       = '';
-//        $image_output_class = 'no-image';
-//      } else {
-//        $image_output       = '<div class="x-recent-posts-img">' . get_the_post_thumbnail( get_the_ID(), 'entry-cropped', NULL ) . '</div>';
-//        $image_output_class = 'with-image';
-//      }
-
-//      $output .= '<a class="x-recent-post' . $count . ' ' . $image_output_class . '" href="' . get_permalink( get_the_ID() ) . '" title="' . esc_attr( sprintf( __( 'Permalink to: "%s"', $text_domain ), the_title_attribute( 'echo=0' ) ) ) . '">'
-//        . '<article id="post-' . get_the_ID() . '" class="' . implode( ' ', get_post_class() ) . '">'
-//        . '<div class="entry-wrap">'
-//        . $image_output
-//        . '<div class="x-recent-posts-content">'
-//        . '<h3 class="h-recent-posts">' . get_the_title() . '</h3>'
-//        //. '<span class="x-recent-posts-date">' . get_the_date() . '</span>'
-//        . '</div>'
-//        . '</div>'
-//        . '</article>'
-//        . '</a>';
 
     endwhile; endif; wp_reset_postdata();
     $output .= "</table>";
